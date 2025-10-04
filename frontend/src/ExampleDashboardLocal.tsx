@@ -1,49 +1,116 @@
 import './ExampleDashboard.css'
-import pets from './examplepets.json' 
+import originalPets from './examplepets.json' 
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardMedia from '@mui/material/CardMedia'
-import Typography from '@mui/material/Typography'
+import Nav from './components/Nav'
+import PetCard from "./components/PetCard"
+import { useState, useEffect } from "react";
+import AddPetCard from './components/AddPetCard'
+
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import type { Pet } from "./types";
+
 
 function ExampleDashboard() {
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [searchFilter, setSearchFilter] = useState<string>("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [newPet, setNewPet] = useState<Pet>({
+    name: "",
+    breed: "",
+    age: ""
+  });
 
-  const petCards = pets.map((pet: any) => { //for local json file: change "data" to "pets" and uncomment the json import line 
-    return (
-      <div key={pet._id} className="pet-grid-item">
-        <Card className="pet-card" sx={{height: '100%', position: 'relative'}}>
-          {pet.url ? (
-            <CardMedia sx={{height: 220}} image={pet.url} />
-          ) : (
-            <Box sx={{ height: 220, display: 'flex', alignItems: 'center', 
-                justifyContent: 'center', backgroundColor: '#f3f4f6'}}>
-              <Typography variant="subtitle1" color="text.secondary">
-                No pet picture 
-              </Typography>
-            </Box>
-          )}
-          <CardContent>
-            <Typography gutterBottom variant="h6">
-              {pet.name}
-            </Typography>
-            <Typography gutterBottom variant="body2" color="text.secondary">
-              {pet.breed}{pet.age ? `, ${pet.age} yrs` : ''}
-            </Typography>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  })
+  useEffect(() => {
+    setPets(() => originalPets);
+  }, []);
+
+  const formatSearchFilter = (s: string) => {
+    return s.toLowerCase().trimEnd();
+  }
+
+  const validSearchPet = (pet: Pet) => {
+    const check_x = (x: string) => {
+      return x.toLowerCase().includes(formatSearchFilter(searchFilter))
+    }
+
+    return check_x(pet.name) || check_x(pet.breed);
+  };
+
+  const deletePet = (petId: any) => {
+    setPets(oldPetList => oldPetList.filter((p) => p._id !== petId))
+  };
+
+  const addPet = (np: Pet) => {
+    setPets(oldPets => [...oldPets, np]);
+  }
+
 
   return (
     <>
       <Container maxWidth="lg">
+        <Nav searchFilter={searchFilter} setSearchFilter={setSearchFilter} />
+        <h1>Pets</h1>
         <Box className="dashboard" sx={{py: 4}}>
           <div className="pet-grid">
-            {petCards}
+            {pets.filter((pet) => validSearchPet(pet)).map((pet, index) => (
+              <PetCard key={index} pet={pet} deletePet={deletePet} />
+            ))}
           </div>
+         <div className="margin-blocker" style={{ marginTop: "40px" }}></div>
+          
+          <AddPetCard onClick={() => setShowPopup(true)} />
         </Box>
+        <Dialog
+          open={showPopup}
+          onClose={() => setShowPopup(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+        <DialogTitle>Add New Pet</DialogTitle>
+        
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Name"
+              value={newPet.name}
+              onChange={(e) => setNewPet({ ...newPet, name: e.target.value })}
+              fullWidth
+            />
+            <TextField
+              label="Pet Type"
+              value={newPet.type}
+              onChange={(e) => setNewPet({ ...newPet, type: e.target.value })}
+              fullWidth
+            />
+            <TextField
+              label="Pet Age"
+              value={newPet.age}
+              onChange={(e) => setNewPet({ ...newPet, age: e.target.value })}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowPopup(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              addPet(newPet);
+              setShowPopup(false);
+            }}
+            variant="contained"
+          >
+            Add Pet
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Container>
     </>
   )
